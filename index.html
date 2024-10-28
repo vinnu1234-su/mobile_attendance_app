@@ -50,14 +50,18 @@
         let lastTimeIn = null;  // Stores the timestamp of the last "Time In" action
 
         async function startCamera(action) {
+            console.log("Starting camera for action:", action);
             currentAction = action;
             camera.style.display = "block";
 
             try {
+                console.log("Requesting camera access...");
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                console.log("Camera access granted.");
                 video.srcObject = stream;
             } catch (error) {
                 console.error("Error accessing the camera: ", error);
+                alert("Unable to access the camera. Please check permissions.");
             }
         }
 
