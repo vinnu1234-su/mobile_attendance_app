@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance App</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+        h1 { margin-bottom: 20px; }
+        .btn { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
+        #camera { width: 100%; max-width: 400px; margin-top: 20px; display: none; }
+        video, canvas { width: 100%; max-width: 400px; }
+        table { width: 100%; max-width: 600px; margin-top: 20px; border-collapse: collapse; }
+        th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: center; }
+        img { width: 80px; height: 80px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <h1>Attendance App</h1>
+    <button class="btn" onclick="startCamera('Time In')">Time In</button>
+    <button class="btn" onclick="startCamera('Time Out')">Time Out</button>
+    
+    <!-- Camera Display and Capture Button -->
+    <div id="camera">
+        <video id="video" autoplay></video>
+        <button class="btn" onclick="capturePhoto()">Capture</button>
+    </div>
+    
+    <!-- Attendance Log Table -->
+    <h2>Attendance Log</h2>
+    <table id="attendance-log">
+        <thead>
+            <tr>
+                <th>Photo</th>
+                <th>Action</th>
+                <th>Timestamp</th>
+                <th>Time Taken</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Attendance entries will appear here -->
+        </tbody>
+    </table>
+
+    <script>
+        let video = document.getElementById("video");
+        let camera = document.getElementById("camera");
+        let attendanceLog = document.getElementById("attendance-log").getElementsByTagName("tbody")[0];
+        let currentAction = '';
+        let lastTimeIn = null;  // Stores the timestamp of the last "Time In" action
+
+        async function startCamera(action) {
+            currentAction = action;
+            camera.style.display = "block";
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error("Error accessing the camera: ", error);
+            }
+        }
+
+        function stopCamera() {
+            let stream = video.srcObject;
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+            camera.style.display = "none";
+        }
+
+        function capturePhoto() {
+            let canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            let context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            let imageUrl = canvas.toDataURL("image/png");
+            let timestamp = new Date();
+
+            let timeDifference = '';
+            if (currentAction === "Time In") {
+                lastTimeIn = timestamp;  // Store "Time In" timestamp
+            } else if (currentAction === "Time Out" && lastTimeIn) {
+                let diffMs = timestamp - lastTimeIn;  // Calculate time difference in milliseconds
+                let diffHours = Math.floor((diffMs % 86400000) / 3600000); // hours
+                let diffMinutes = Math.floor((diffMs % 3600000) / 60000); // minutes
+                let diffSeconds = Math.floor((diffMs % 60000) / 1000); // seconds
+                timeDifference = `${diffHours}h ${diffMinutes}m ${diffSeconds}s`;
+                lastTimeIn = null;  // Reset after calculating
+            }
+
+            // Add the captured photo and details to the attendance log table
+            let row = attendanceLog.insertRow();
+            row.innerHTML = `
+                <td><img src="${imageUrl}" alt="Captured photo" /></td>
+                <td>${currentAction}</td>
+                <td>${timestamp.toLocaleString()}</td>
+                <td>${timeDifference ? timeDifference : '-'}</td>
+            `;
+            
+            stopCamera();
+        }
+    </script>
+</body>
+</html>
